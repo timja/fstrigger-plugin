@@ -14,6 +14,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Map;
+import org.jenkinsci.remoting.Role;
+import org.jenkinsci.remoting.RoleChecker;
 
 
 /**
@@ -29,15 +31,24 @@ public class FSTriggerComputeFileService implements Serializable {
      * @throws XTriggerException
      */
     public FilePath computedFile(Node node, AbstractProject project, final FileNameTriggerInfo fileInfo, final XTriggerLog log) throws XTriggerException {
-
-        if (node == null || node.getRootPath() == null) {
+        
+        if (node == null) {
             throw new XTriggerException("A valid node must be set.");
+        }
+        FilePath rootPath = node.getRootPath();
+        if (rootPath == null) {
+            throw new XTriggerException("Node must be online.");
         }
 
         EnvVarsResolver varsRetriever = new EnvVarsResolver();
         try {
             final Map<String, String> envVars = varsRetriever.getPollingEnvVars(project, node);
-            return node.getRootPath().act(new Callable<FilePath, XTriggerException>() {
+            return rootPath.act(new Callable<FilePath, XTriggerException>() {
+                @Override
+                public void checkRoles(RoleChecker roleChecker) throws SecurityException {
+                    roleChecker.check(this, Role.UNKNOWN_SET);
+                }
+
                 public FilePath call() throws XTriggerException {
                     File file = new FSTriggerFileNameRetriever(fileInfo, log, envVars).getFile();
                     if (file == null) {

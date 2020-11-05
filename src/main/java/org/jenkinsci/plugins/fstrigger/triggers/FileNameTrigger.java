@@ -24,6 +24,8 @@ import org.jenkinsci.plugins.fstrigger.core.FSTriggerAction;
 import org.jenkinsci.plugins.fstrigger.core.FSTriggerContentFileType;
 import org.jenkinsci.plugins.fstrigger.service.FSTriggerComputeFileService;
 import org.jenkinsci.plugins.fstrigger.service.FSTriggerFileNameCheckedModifiedService;
+import org.jenkinsci.remoting.Role;
+import org.jenkinsci.remoting.RoleChecker;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
@@ -114,6 +116,11 @@ public class FileNameTrigger extends AbstractTrigger {
                         if (type != null) {
                             try {
                                 Object memoryInfo = resolvedFile.act(new FilePath.FileCallable<Object>() {
+                                    @Override
+                                    public void checkRoles(RoleChecker roleChecker) throws SecurityException {
+                                        roleChecker.check(this, Role.UNKNOWN_SET);
+                                    }
+
                                     public Object invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
                                         try {
                                             type.initMemoryFields(jobName, f);
@@ -219,6 +226,12 @@ public class FileNameTrigger extends AbstractTrigger {
             final Long lastModification = info.getLastModifications();
             final String resolvedFilePath = (resolvedFile != null) ? resolvedFile.getRemote() : null;
             boolean changedFileName = newResolvedFile.act(new FilePath.FileCallable<Boolean>() {
+
+                @Override
+                public void checkRoles(RoleChecker roleChecker) throws SecurityException {
+                    roleChecker.check(this, Role.UNKNOWN_SET);
+                }
+                
                 public Boolean invoke(File newResolvedFile, VirtualChannel channel) throws IOException, InterruptedException {
                     try {
                         FSTriggerFileNameCheckedModifiedService service = new FSTriggerFileNameCheckedModifiedService(log, info, resolvedFilePath, lastModification, newResolvedFile);
@@ -244,6 +257,12 @@ public class FileNameTrigger extends AbstractTrigger {
                         return false;
                     }
                     boolean isTriggered = newResolvedFile.act(new FilePath.FileCallable<Boolean>() {
+
+                        @Override
+                        public void checkRoles(RoleChecker roleChecker) throws SecurityException {
+                            roleChecker.check(this, Role.UNKNOWN_SET);
+                        }
+                        
                         public Boolean invoke(File newResolvedFile, VirtualChannel channel) throws IOException, InterruptedException {
                             boolean isTriggered;
                             try {

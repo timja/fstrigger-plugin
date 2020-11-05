@@ -38,9 +38,4 @@ public class JARFileContentTest extends ZIPFileContentTest {
         return new File(this.getClass().getResource("JARFileContent/newFileChangedContentOneFile.jar").toURI());
     }
 
-    @Override
-    protected File getNotGoodTypeFile() throws URISyntaxException {
-        return new File(this.getClass().getResource("JARFileContent/noJARFile.jar").toURI());
-    }
-
 }

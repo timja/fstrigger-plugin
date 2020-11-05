@@ -8,6 +8,7 @@ import hudson.console.AnnotatedLargeText;
 import hudson.model.*;
 import hudson.remoting.VirtualChannel;
 import hudson.util.SequentialExecutionQueue;
+import jenkins.model.Jenkins;
 import org.apache.commons.jelly.XMLOutput;
 import org.apache.tools.ant.types.DirSet;
 import org.apache.tools.ant.types.FileSet;
@@ -19,6 +20,8 @@ import org.jenkinsci.lib.xtrigger.XTriggerDescriptor;
 import org.jenkinsci.lib.xtrigger.XTriggerException;
 import org.jenkinsci.lib.xtrigger.XTriggerLog;
 import org.jenkinsci.plugins.fstrigger.core.FSTriggerAction;
+import org.jenkinsci.remoting.Role;
+import org.jenkinsci.remoting.RoleChecker;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.*;
@@ -177,13 +180,18 @@ public class FolderContentTrigger extends AbstractTrigger {
         }
 
         if (launcherNode.getRootPath() == null) {
-            log.info("The slave is now offline. Waiting next schedule");
+            log.info("The agent is now offline. Waiting next schedule");
             return null;
         }
 
         Map<String, FileInfo> result;
         try {
             result = launcherNode.getRootPath().act(new FilePath.FileCallable<Map<String, FileInfo>>() {
+                @Override
+                public void checkRoles(RoleChecker roleChecker) throws SecurityException {
+                    roleChecker.check(this, Role.UNKNOWN_SET);
+                }
+
                 public Map<String, FileInfo> invoke(File node, VirtualChannel channel) throws IOException, InterruptedException {
                     try {
                         return getFileInfo(path, includes, excludes, log);
@@ -308,6 +316,11 @@ public class FolderContentTrigger extends AbstractTrigger {
         try {
             final Map<String, FileInfo> originMd5Map = md5Map;
             isTriggering = launcherNode.getRootPath().act(new FilePath.FileCallable<Boolean>() {
+                @Override
+                public void checkRoles(RoleChecker roleChecker) throws SecurityException {
+                    roleChecker.check(this, Role.UNKNOWN_SET);
+                }
+
                 public Boolean invoke(File slavePath, VirtualChannel channel) throws IOException, InterruptedException {
                     return checkIfModifiedFile(log, originMd5Map, newMd5Map);
                 }
@@ -398,7 +411,7 @@ public class FolderContentTrigger extends AbstractTrigger {
 
     @Override
     public FolderContentTriggerDescriptor getDescriptor() {
-        return (FolderContentTriggerDescriptor) Hudson.getInstance().getDescriptorOrDie(getClass());
+        return (FolderContentTriggerDescriptor) Jenkins.get().getDescriptorOrDie(getClass());
     }
 
     public final class FSTriggerFolderAction extends FSTriggerAction {
